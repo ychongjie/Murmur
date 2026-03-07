@@ -13,7 +13,7 @@
 | **依赖分层（Dependency Layering）** | Types → Config → DB/Repo → Service → Runtime → UI 严格单向依赖 |
 | **结构化测试 & 品味不变量（Structural Tests & Taste Invariants）** | 自定义 lint 规则 + 架构合规测试，错误信息内嵌修复指引 |
 | **强制不变量而非实现（Enforce Invariants, Not Implementations）** | 规定"边界处解析数据"等原则，不规定具体写法 |
-| **AGENTS.md 即目录（AGENTS.md as Table of Contents）** | 约 100 行的 AGENTS.md 指向 docs/ 下的详细文档 |
+| **CLAUDE.md 即目录（Context File as Table of Contents）** | 根目录 CLAUDE.md 约 100 行指向 docs/，各 package 下放子目录 CLAUDE.md 按需加载 |
 | **黄金原则 & 垃圾回收（Golden Principles & Garbage Collection）** | 编码规范机械化执行 + 定期清理 Agent 自动修复代码异味 |
 | **可观测运行时（Observable Runtime）** | 结构化日志 + WebSocket 事件追踪 + Agent 调用链路追踪 |
 
@@ -23,12 +23,19 @@
 
 ```
 murmur/
-├── AGENTS.md                      # Agent 上下文入口（~100 行，目录式）
-├── CLAUDE.md                      # Claude Code 专用指引
+├── CLAUDE.md                      # Claude Code 上下文入口（~100 行，目录式）
+├── CLAUDE.local.md                # 本地个人偏好（自动 gitignore）
 ├── package.json                   # monorepo root
 ├── pnpm-workspace.yaml
 ├── turbo.json                     # Turborepo 构建编排
 ├── tsconfig.base.json             # 共享 TypeScript 配置
+├── .claude/
+│   ├── settings.json              # 项目级 Claude Code 配置（权限、hooks）
+│   ├── settings.local.json        # 本地配置覆盖（gitignore）
+│   └── rules/                     # 路径匹配规则（按需加载）
+│       ├── backend.md             # 后端代码规则（匹配 packages/server/**）
+│       ├── frontend.md            # 前端代码规则（匹配 packages/web/**）
+│       └── agent-system.md        # Agent 系统规则（匹配 packages/service/src/agent/**）
 ├── .github/
 │   └── workflows/
 │       ├── ci.yml                 # PR 级 CI：lint + typecheck + test + structural
@@ -46,6 +53,7 @@ murmur/
 │
 ├── packages/
 │   ├── types/                     # Layer 0: 纯类型定义，零运行时依赖
+│   │   ├── CLAUDE.md              # 子目录上下文：类型定义规范（按需加载）
 │   │   ├── src/
 │   │   │   ├── world.ts           # WorldTemplate, WorldInstance, WorldEvent
 │   │   │   ├── agent.ts           # DirectorDecision, CharacterMessage
@@ -66,6 +74,7 @@ murmur/
 │   │   └── tsconfig.json
 │   │
 │   ├── db/                        # Layer 2: 数据访问层，依赖 types + config
+│   │   ├── CLAUDE.md              # 子目录上下文：数据库规范（按需加载）
 │   │   ├── src/
 │   │   │   ├── client.ts          # PostgreSQL 连接（pg / drizzle-orm）
 │   │   │   ├── schema.ts          # 数据库 schema 定义
@@ -79,6 +88,7 @@ murmur/
 │   │   └── tsconfig.json
 │   │
 │   ├── service/                   # Layer 3: 业务逻辑，依赖 types + config + db
+│   │   ├── CLAUDE.md              # 子目录上下文：业务层 & Agent 编排规范（按需加载）
 │   │   ├── src/
 │   │   │   ├── agent/
 │   │   │   │   ├── director.ts    # 导演 Agent 逻辑
@@ -97,6 +107,7 @@ murmur/
 │   │   └── tsconfig.json
 │   │
 │   ├── server/                    # Layer 4: 运行时入口，依赖 types + config + db + service
+│   │   ├── CLAUDE.md              # 子目录上下文：路由 & WebSocket 规范（按需加载）
 │   │   ├── src/
 │   │   │   ├── app.ts             # Fastify 应用初始化
 │   │   │   ├── routes/
@@ -113,6 +124,7 @@ murmur/
 │   │   └── tsconfig.json
 │   │
 │   └── web/                       # Layer 5: 前端 UI，依赖 types
+│       ├── CLAUDE.md              # 子目录上下文：前端组件 & 样式规范（按需加载）
 │       ├── src/
 │       │   ├── app/
 │       │   │   ├── layout.tsx
@@ -273,53 +285,155 @@ describe('命名规范', () => {
 
 ---
 
-## 5. AGENTS.md 设计
+## 5. CLAUDE.md 体系设计
 
-遵循 harness engineering 的核心实践：**AGENTS.md 是目录，不是百科全书。**
+遵循 harness engineering 的核心实践，适配 Claude Code 的多层级上下文机制：**根目录 CLAUDE.md 是目录，子目录 CLAUDE.md 按需加载，`.claude/rules/` 做路径匹配规则。**
+
+### 5.1 上下文加载机制
+
+Claude Code 的上下文文件按以下优先级和时机加载：
+
+```
+会话启动时立即加载：
+  1. ~/.claude/CLAUDE.md              — 用户全局偏好
+  2. /CLAUDE.md（根目录）              — 项目级指引（~100 行）
+  3. .claude/rules/*.md（无 paths）    — 全局规则（无条件加载）
+
+按需懒加载（Claude 访问对应目录时）：
+  4. packages/*/CLAUDE.md              — 子目录上下文（Claude 读取该目录文件时触发）
+  5. .claude/rules/*.md（有 paths）    — 路径匹配规则（Claude 操作匹配路径时触发）
+
+不提交到 Git：
+  6. CLAUDE.local.md                   — 个人本地偏好
+  7. .claude/settings.local.json       — 本地配置覆盖
+```
+
+### 5.2 根目录 CLAUDE.md（~100 行）
 
 ```markdown
-# AGENTS.md — Murmur 项目 Agent 指引
+# Murmur — AI 自演化文字世界
 
 ## 项目概述
-Murmur 是 AI 多角色自动叙事平台。详见 docs/product-spec.md
+AI 多角色自动叙事平台，用户旁观 AI 角色自主对话和行动。
+详见 @docs/product-spec.md
 
 ## 架构分层（严格执行）
 Types → Config → DB → Service → Server → Web
-每层只能依赖左侧的层。详见 docs/project-framework.md#3
+每层只能依赖左侧的层。违反会被 CI 和自定义 lint 拦截。
+详见 @docs/project-framework.md
 
 ## 关键约束
 - 单文件 ≤ 300 行
-- 禁止 console.log，使用结构化日志
-- API 边界必须 zod 校验
+- 禁止 console.log，使用 pino 结构化日志
+- API 边界必须 zod 校验请求和响应
 - service 层用 Result<T, E> 模式，不 throw
-- 世界模板 YAML 必须通过 schema 校验
+- 世界模板 YAML 必须通过 JSON Schema 校验
+- 所有 LLM 响应必须用 zod 解析后再传递
 
 ## 目录结构
-- packages/types/    — 纯类型定义（Layer 0）
-- packages/config/   — 环境变量 & 常量（Layer 1）
-- packages/db/       — 数据库访问（Layer 2）
-- packages/service/  — 业务逻辑 & Agent 编排（Layer 3）
-- packages/server/   — HTTP + WebSocket 运行时（Layer 4）
-- packages/web/      — React 前端（Layer 5）
+- packages/types/    — 纯类型定义，零运行时依赖（Layer 0）
+- packages/config/   — 环境变量、常量、世界模板（Layer 1）
+- packages/db/       — 数据库 schema、迁移、仓储（Layer 2）
+- packages/service/  — 业务逻辑、Agent 编排引擎（Layer 3）
+- packages/server/   — Fastify HTTP + WebSocket 运行时（Layer 4）
+- packages/web/      — Next.js 前端，复古终端风格（Layer 5）
 
 ## 文档索引
-- docs/product-spec.md         — 完整产品需求
-- docs/project-framework.md    — 项目框架 & 护栏设计（本文档详述）
-- docs/architecture.md         — 架构决策记录
-- docs/api-spec.md             — API 定义
-- docs/data-model.md           — 数据库 schema
-- docs/agent-system.md         — 导演/角色 Agent prompt 工程
-- docs/world-template-schema.md — 世界模板 YAML schema
-- docs/style-guide.md          — 前端视觉规范
+- @docs/product-spec.md         — 产品需求
+- @docs/project-framework.md    — 项目框架 & 护栏设计
+- @docs/architecture.md         — 架构决策记录
+- @docs/api-spec.md             — REST + WebSocket API 定义
+- @docs/data-model.md           — 数据库 schema
+- @docs/agent-system.md         — 导演/角色 Agent prompt 工程
+- @docs/world-template-schema.md — 世界模板 YAML schema
+- @docs/style-guide.md          — 前端视觉规范
 
 ## 常用命令
 - pnpm install                 — 安装依赖
-- pnpm dev                     — 启动本地开发环境
-- pnpm lint                    — 运行 ESLint（含自定义规则）
-- pnpm typecheck               — TypeScript 类型检查
-- pnpm test                    — 运行单元测试
-- pnpm test:structural         — 运行架构合规测试
-- pnpm db:migrate              — 执行数据库迁移
+- pnpm dev                     — 启动本地开发（server + web 并行）
+- pnpm lint                    — ESLint + 自定义规则
+- pnpm typecheck               — TypeScript strict 类型检查
+- pnpm test                    — 单元测试
+- pnpm test:structural         — 架构合规测试
+- pnpm db:migrate              — 数据库迁移
+- pnpm db:seed                 — 导入预置世界模板
+```
+
+> **注意 `@` 语法：** Claude Code 支持 `@path/to/file` 导入，Claude 在需要时会自动读取引用的文件，最大 5 层递归。这实现了渐进式披露——根目录 CLAUDE.md 只做目录，详细内容按需加载。
+
+### 5.3 子目录 CLAUDE.md 示例
+
+每个 package 下的 CLAUDE.md 在 Claude 访问该目录时**懒加载**，提供包级别的上下文：
+
+```markdown
+# packages/service/CLAUDE.md
+
+## 本包职责
+业务逻辑层（Layer 3），包含 Agent 编排引擎、世界时钟、回合推进。
+
+## 依赖规则
+- 可以依赖：@murmur/types, @murmur/config, @murmur/db
+- 不可依赖：@murmur/server, @murmur/web
+
+## Agent 编排约定
+- 导演 Agent 和角色 Agent 的 prompt 模板在 agent/prompt-builder.ts 中集中管理
+- 所有 LLM 调用必须通过 agent/llm-client.ts，不直接调用 DeepSeek API
+- LLM 响应必须用 zod 解析，解析失败返回 Result.err() 而非 throw
+- 每次 LLM 调用自动记录 token 消耗和延迟
+
+## 错误处理
+- 所有公开函数返回 Result<T, Error> 类型
+- 禁止使用 try/catch + throw 模式
+- 错误类型定义在 @murmur/types 中
+```
+
+### 5.4 `.claude/rules/` 路径匹配规则
+
+路径匹配规则仅在 Claude 操作匹配路径的文件时加载，避免上下文膨胀：
+
+```markdown
+# .claude/rules/backend.md
+---
+paths:
+  - "packages/server/**/*.ts"
+  - "packages/service/**/*.ts"
+  - "packages/db/**/*.ts"
+---
+# 后端代码规则
+- 使用 pino 结构化日志，禁止 console.log
+- 数据库字段使用 snake_case
+- TypeScript 属性使用 camelCase
+- API 路由入口必须用 zod 校验 request body/params/query
+- 错误处理：service 层返回 Result<T, E>，server 层的 error-handler 统一转 HTTP 响应
+```
+
+```markdown
+# .claude/rules/frontend.md
+---
+paths:
+  - "packages/web/**/*.{ts,tsx,css}"
+---
+# 前端代码规则
+- 组件文件使用 PascalCase，每个文件只导出一个组件
+- 样式通过 Tailwind 类名，不使用 inline style 对象
+- 复古终端主题变量定义在 terminal.css，通过 CSS 变量引用
+- 状态管理优先 useState/useReducer，跨组件共享用 Context
+- 禁止引入额外状态管理库（v1 阶段）
+```
+
+```markdown
+# .claude/rules/agent-system.md
+---
+paths:
+  - "packages/service/src/agent/**/*.ts"
+  - "packages/config/src/templates/**/*.yaml"
+---
+# Agent 系统规则
+- 导演 prompt 和角色 prompt 的构建逻辑分离在不同函数中
+- 世界模板 YAML 必须通过 docs/world-template-schema.md 中定义的 JSON Schema 校验
+- temperature 参数：导演 0.9，角色 0.95
+- 导演输出必须是 JSON 格式，用 zod 解析为 DirectorDecision 类型
+- 角色对话限制 1-3 句，在 prompt 中明确约束
 ```
 
 ---
@@ -390,11 +504,118 @@ jobs:
 
 ---
 
-## 7. 黄金原则（Golden Principles）
+## 7. Claude Code Hooks（质量护栏自动化）
+
+Claude Code 的 hooks 机制在工具调用的生命周期中注入自动检查，实现 harness engineering 的"系统自动纠偏"理念。
+
+### 7.1 项目级 hooks 配置
+
+```jsonc
+// .claude/settings.json
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "type": "command",
+        "command": "node tools/hooks/check-layer-violation.js"
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "type": "command",
+        "command": "node tools/hooks/post-write-check.js"
+      }
+    ],
+    "Stop": [
+      {
+        "type": "command",
+        "command": "node tools/hooks/on-stop-validate.js"
+      }
+    ]
+  }
+}
+```
+
+### 7.2 Hook 用途设计
+
+| Hook 事件 | 用途 | 实现 |
+|-----------|------|------|
+| **PreToolUse (Write\|Edit)** | 阻止跨层依赖的文件写入 | 解析目标文件路径和 import，检查是否违反依赖分层规则。违反时 exit 2 + 错误信息反馈给 Claude |
+| **PostToolUse (Write\|Edit)** | 写入后自动校验 | 对修改的文件运行 ESLint 单文件检查 + 文件行数检查，发现问题立即反馈 |
+| **PostToolUse (Bash)** | 捕获测试失败 | 当 Bash 执行测试命令后，解析输出中的失败信息，结构化反馈给 Claude |
+| **Stop** | 完成前最终检查 | Claude 准备结束时，运行 typecheck + lint 确认无遗留问题。若有问题 exit 2 强制 Claude 继续修复 |
+
+### 7.3 PreToolUse Hook 示例（依赖分层守卫）
+
+```javascript
+// tools/hooks/check-layer-violation.js
+// 从 stdin 读取 Claude Code 传入的 JSON（包含工具名、参数等）
+// 检查写入目标文件的 import 是否违反依赖方向
+// exit 0 = 允许写入，exit 2 = 阻止并反馈错误
+
+const input = JSON.parse(require('fs').readFileSync('/dev/stdin', 'utf8'));
+const filePath = input.tool_input?.file_path;
+
+if (!filePath) process.exit(0);
+
+const LAYERS = {
+  'packages/types/':   0,
+  'packages/config/':  1,
+  'packages/db/':      2,
+  'packages/service/': 3,
+  'packages/server/':  4,
+  'packages/web/':     5,
+};
+
+// 解析文件所在层级
+const fileLayer = Object.entries(LAYERS)
+  .find(([prefix]) => filePath.includes(prefix));
+
+if (!fileLayer) process.exit(0);  // 非 packages 文件，放行
+
+// 检查新内容中的 @murmur/ import
+const content = input.tool_input?.new_string || input.tool_input?.content || '';
+const imports = content.match(/@murmur\/\w+/g) || [];
+
+for (const imp of imports) {
+  const pkg = imp.replace('@murmur/', '');
+  const importLayer = LAYERS[`packages/${pkg}/`];
+  if (importLayer !== undefined && importLayer >= fileLayer[1] && pkg !== 'types') {
+    process.stderr.write(
+      `依赖方向违规：${fileLayer[0]} (Layer ${fileLayer[1]}) 不能导入 ${imp} (Layer ${importLayer})。\n` +
+      `修复：将需要的类型移到 @murmur/types，或通过函数参数注入。\n` +
+      `参考：docs/project-framework.md#3-依赖分层规则\n`
+    );
+    process.exit(2);
+  }
+}
+
+process.exit(0);
+```
+
+### 7.4 Hooks vs CI 的分工
+
+```
+开发时（实时反馈）：
+  Claude Code Hooks → PreToolUse / PostToolUse
+  ↳ 在 Claude 写代码的瞬间拦截违规，零延迟反馈
+  ↳ 覆盖：依赖分层、文件大小、基础 lint
+
+提交时（全面校验）：
+  CI Pipeline → GitHub Actions
+  ↳ 完整的 typecheck + lint + structural tests + unit tests
+  ↳ 覆盖：跨包类型一致性、集成测试、模板 schema 校验
+```
+
+---
+
+## 8. 黄金原则（Golden Principles）
 
 以下原则被机械化执行，确保 Agent 产出的代码始终一致：
 
-### 7.1 后端原则
+### 8.1 后端原则
 
 ```
 GP-01: 数据在边界处解析
@@ -423,7 +644,7 @@ GP-05: WebSocket 消息类型安全
   → 强制方式：TypeScript 编译 + 结构化测试
 ```
 
-### 7.2 前端原则
+### 8.2 前端原则
 
 ```
 GP-06: 组件单一职责
@@ -443,7 +664,7 @@ GP-08: 状态管理最小化
   → 强制方式：依赖审查
 ```
 
-### 7.3 垃圾回收流程
+### 8.3 垃圾回收流程
 
 ```
 定期执行 scripts/cleanup.ts：
@@ -456,9 +677,9 @@ GP-08: 状态管理最小化
 
 ---
 
-## 8. 可观测性设计
+## 9. 可观测性设计
 
-### 8.1 结构化日志（对齐 GP-03）
+### 9.1 结构化日志（对齐 GP-03）
 
 ```typescript
 // 日志格式示例
@@ -475,7 +696,7 @@ logger.info({
 });
 ```
 
-### 8.2 关键指标追踪
+### 9.2 关键指标追踪
 
 | 指标 | 来源 | 用途 |
 |------|------|------|
@@ -488,7 +709,7 @@ logger.info({
 
 ---
 
-## 9. 技术栈确认（v1 MVP）
+## 10. 技术栈确认（v1 MVP）
 
 | 组件 | 选型 | 版本 |
 |------|------|------|
@@ -511,29 +732,31 @@ logger.info({
 
 ---
 
-## 10. 开发工作流
+## 11. 开发工作流
 
-### 10.1 Agent-First 开发循环
+### 11.1 Agent-First 开发循环
 
 ```
 1. 人类工程师定义任务（GitHub Issue / 自然语言描述）
        ↓
-2. Agent 读取 AGENTS.md → 理解架构分层和约束
+2. Claude Code 启动 → 自动加载根目录 CLAUDE.md → 理解架构分层和约束
        ↓
-3. Agent 查阅 docs/ 下的相关文档 → 理解具体领域细节
+3. Claude 访问具体 package → 懒加载子目录 CLAUDE.md + .claude/rules/ 匹配规则
        ↓
-4. Agent 在正确的 package 和 layer 中编写代码
+4. Claude 在正确的 package 和 layer 中编写代码
        ↓
-5. Agent 运行 lint + typecheck + test → 自动修复违规
+5. PreToolUse hooks 实时拦截违规 → PostToolUse hooks 写入后校验
        ↓
-6. 提交 PR → CI 运行全部质量门
+6. Stop hook 最终检查 → 确认无遗留 lint / typecheck 问题
        ↓
-7. 人类工程师 review → 关注架构合理性而非代码细节
+7. 提交 PR → CI 运行全部质量门
        ↓
-8. 合并 → 自动部署
+8. 人类工程师 review → 关注架构合理性而非代码细节
+       ↓
+9. 合并 → 自动部署
 ```
 
-### 10.2 本地开发命令
+### 11.2 本地开发命令
 
 ```bash
 # 首次设置
@@ -543,7 +766,12 @@ pnpm db:migrate
 # 日常开发
 pnpm dev              # 同时启动 server + web（turbo 并行）
 
-# 质量检查（提交前）
+# Claude Code 开发（推荐）
+claude                # 启动 Claude Code，自动加载 CLAUDE.md 和 hooks
+                      # PreToolUse hooks 实时拦截违规
+                      # Stop hook 完成前自动校验
+
+# 质量检查（手动 / CI）
 pnpm lint             # ESLint + 自定义规则
 pnpm typecheck        # TypeScript 严格模式
 pnpm test             # 单元测试
@@ -556,7 +784,7 @@ pnpm db:seed          # 导入预置世界模板
 
 ---
 
-## 11. v1 MVP 实施顺序
+## 12. v1 MVP 实施顺序
 
 基于 harness engineering 的深度优先（depth-first）策略，先搭建基础构建块，再组合出完整功能：
 
@@ -568,7 +796,9 @@ pnpm db:seed          # 导入预置世界模板
 - [ ] ESLint flat config + 自定义 lint 规则
 - [ ] 结构化测试框架
 - [ ] CI 流水线
-- [ ] AGENTS.md + docs/ 文档骨架
+- [ ] CLAUDE.md（根目录 + 各 package 子目录）
+- [ ] .claude/settings.json（hooks 配置）+ .claude/rules/（路径匹配规则）
+- [ ] docs/ 文档骨架
 ```
 
 ### Phase 1: 类型 & 数据层（Day 3-4）
