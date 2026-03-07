@@ -1,7 +1,7 @@
 import globals from 'globals';
+import tseslint from 'typescript-eslint';
 
-/** @type {import('eslint').Linter.Config[]} */
-export default [
+export default tseslint.config(
   {
     ignores: ['**/dist/**', '**/node_modules/**', '**/.next/**', '**/.turbo/**'],
   },
@@ -9,6 +9,7 @@ export default [
   // Base config for all TypeScript files
   {
     files: ['**/*.ts', '**/*.tsx'],
+    extends: [tseslint.configs.base],
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: 'module',
@@ -21,7 +22,6 @@ export default [
       'no-console': ['error', { allow: ['warn', 'error'] }],
 
       // Clean code basics
-      'no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
       'no-var': 'error',
       'prefer-const': 'error',
       eqeqeq: ['error', 'always'],
@@ -49,4 +49,4 @@ export default [
       'no-console': 'off',
     },
   },
-];
+);
