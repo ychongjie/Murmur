@@ -1,0 +1,67 @@
+/* Retro terminal theme for Murmur */
+
+:root {
+  /* Background */
+  --terminal-bg: #1a1a2e;
+  --terminal-bg-secondary: #16213e;
+
+  /* Text colors */
+  --terminal-amber: #ffb000;
+  --terminal-green: #00ff41;
+  --terminal-text: var(--terminal-amber);
+  --terminal-text-dim: #996a00;
+
+  /* Character colors */
+  --char-color-1: #ff6b6b;
+  --char-color-2: #4ecdc4;
+  --char-color-3: #ffe66d;
+  --char-color-4: #a29bfe;
+  --char-color-5: #fd79a8;
+
+  /* Narration */
+  --narration-color: #636e72;
+
+  /* UI */
+  --border-color: #2d3436;
+  --glow-color: rgba(255, 176, 0, 0.15);
+
+  /* Fonts */
+  --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+  --font-serif: 'Noto Serif SC', 'Source Han Serif SC', serif;
+}
+
+body {
+  background-color: var(--terminal-bg);
+  color: var(--terminal-text);
+  font-family: var(--font-mono);
+}
+
+/* Typewriter cursor blink */
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+.cursor-blink {
+  animation: blink 1s step-end infinite;
+}
+
+/* Scanline effect (subtle) */
+.scanlines::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.05) 2px,
+    rgba(0, 0, 0, 0.05) 4px
+  );
+  pointer-events: none;
+}
+
+/* Text glow effect */
+.text-glow {
+  text-shadow: 0 0 8px var(--glow-color);
+}

@@ -1,0 +1,26 @@
+{
+  "name": "@murmur/server",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "scripts": {
+    "build": "tsc -b",
+    "dev": "tsx watch src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src/",
+    "test": "vitest run",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@murmur/types": "workspace:*",
+    "@murmur/config": "workspace:*",
+    "@murmur/db": "workspace:*",
+    "@murmur/service": "workspace:*",
+    "fastify": "^5.2.0",
+    "@fastify/websocket": "^11.0.0",
+    "@fastify/cors": "^10.0.0",
+    "pino": "^9.0.0",
+    "zod": "^3.24.0"
+  }
+}

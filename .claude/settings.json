@@ -1,0 +1,24 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "type": "command",
+        "command": "node tools/hooks/check-layer-violation.js"
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "type": "command",
+        "command": "node tools/hooks/post-write-check.js"
+      }
+    ],
+    "Stop": [
+      {
+        "type": "command",
+        "command": "node tools/hooks/on-stop-validate.js"
+      }
+    ]
+  }
+}

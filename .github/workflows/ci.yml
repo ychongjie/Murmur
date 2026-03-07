@@ -1,0 +1,54 @@
+name: CI
+
+on: [pull_request]
+
+jobs:
+  quality-gates:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Gate 1: Type safety
+      - name: Typecheck
+        run: pnpm typecheck
+
+      # Gate 2: Code style & custom lint rules
+      - name: Lint
+        run: pnpm lint
+
+      # Gate 3: Architecture compliance (structural tests)
+      - name: Structural Tests
+        run: pnpm test:structural
+
+      # Gate 4: Unit tests
+      - name: Unit Tests
+        run: pnpm test
+
+      # Gate 5: File size check
+      - name: File Size Check
+        run: |
+          violations=0
+          while IFS= read -r f; do
+            lines=$(wc -l < "$f")
+            if [ "$lines" -gt 300 ]; then
+              echo "ERROR: $f has $lines lines (limit: 300)"
+              echo "Fix: Split the file into smaller modules. See docs/project-framework.md#4"
+              violations=$((violations + 1))
+            fi
+          done < <(find packages -name '*.ts' -o -name '*.tsx' | grep -v node_modules | grep -v dist | grep -v .next)
+          if [ "$violations" -gt 0 ]; then
+            echo "$violations file(s) exceed the 300-line limit"
+            exit 1
+          fi
