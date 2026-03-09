@@ -23,7 +23,7 @@ const LAYERS = {
 };
 
 try {
-  const input = JSON.parse(readFileSync('/dev/stdin', 'utf8'));
+  const input = JSON.parse(readFileSync(0, 'utf8'));
   const filePath = input.tool_input?.file_path;
 
   if (!filePath) process.exit(0);
@@ -47,7 +47,7 @@ try {
     const importLayerValue = LAYERS[`packages/${pkg}/`];
     if (
       importLayerValue !== undefined &&
-      importLayerValue >= fileLayer &&
+      importLayerValue > fileLayer &&
       pkg !== 'types'
     ) {
       process.stderr.write(
