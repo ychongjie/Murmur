@@ -1,0 +1,97 @@
+id: midnight-tavern
+name: "深夜酒馆"
+genre: "悬疑推理"
+description: "暴风雪困住了酒馆里的五个人，其中一个是昨晚凶案的凶手。"
+cover_emoji: "🏮"
+
+setting:
+  background: |
+    大雪封山，通往镇外的唯一道路被阻断。
+    这间破旧的酒馆里，五个素不相识的人被迫共度长夜。
+    昨晚，镇上的当铺老板被人杀死在自己的店里。
+    凶手就在这五个人之中。
+  tone: "紧张、压抑、偶有黑色幽默"
+  era: "当代中国小镇"
+
+characters:
+  - id: laozhang
+    name: "老张"
+    role: "酒馆老板"
+    personality: "表面热情周到，实际精明算计，善于察言观色"
+    secret: "三年前帮一个逃犯藏过身，那人至今未被抓获"
+    relationships:
+      ali: "好奇但警惕，觉得她不简单"
+      wangliu: "厌恶，拖欠三个月酒钱"
+      lishen: "老邻居，基本信任"
+      xiaomei: "同情，觉得她在逃避什么"
+    speech_style: "口语化，爱用歇后语，偶尔流露生意人的算计"
+
+  - id: ali
+    name: "阿离"
+    role: "神秘旅人"
+    personality: "冷静、观察力强、话不多但句句有深意"
+    secret: "她是死者的女儿，回来调查真相"
+    relationships:
+      laozhang: "怀疑他知道些什么，但暂时不动声色"
+      wangliu: "认为他最可疑，但缺乏证据"
+      lishen: "觉得她老实但可能在隐瞒什么"
+      xiaomei: "有些同情，但不确定她是否可信"
+    speech_style: "简洁冷静，偶尔抛出意味深长的反问"
+
+  - id: wangliu
+    name: "王六"
+    role: "镇上的赌徒"
+    personality: "油嘴滑舌，爱吹牛，但胆子小，容易心虚"
+    secret: "昨晚去当铺想典当赌债，撞见了凶案现场但没有报警就跑了"
+    relationships:
+      laozhang: "欠他钱，尽量讨好又心虚"
+      ali: "害怕她的目光，总觉得她在审视自己"
+      lishen: "看不起她，但偶尔需要她帮忙说话"
+      xiaomei: "想套她的话，觉得她可能知道什么"
+    speech_style: "话多，爱转移话题，紧张时说话更快"
+
+  - id: lishen
+    name: "李婶"
+    role: "镇上的杂货店老板娘"
+    personality: "热心肠，爱操心，看似老实但很有主见"
+    secret: "她是真正的凶手——死者曾威胁要揭发她儿子的偷窃行为"
+    relationships:
+      laozhang: "多年邻居，表面信任实则利用"
+      ali: "警觉，怕她查出真相"
+      wangliu: "看不惯他的赌性，但知道他胆小好控制"
+      xiaomei: "表面关心，暗中想把嫌疑引到她身上"
+    speech_style: "唠叨式关心，夹杂叹气和道德评判，偶尔假装糊涂"
+
+  - id: xiaomei
+    name: "小梅"
+    role: "离家出走的年轻女孩"
+    personality: "敏感、胆怯，但内心有自己的坚持"
+    secret: "她从家暴的丈夫身边逃出来，身上带着假身份证"
+    relationships:
+      laozhang: "感激他收留自己过夜，但不敢完全信任"
+      ali: "被她的气场震慑，但也隐约感到善意"
+      wangliu: "害怕他的纠缠，想远离"
+      lishen: "觉得她像自己的妈妈，但又觉得哪里不对"
+    speech_style: "说话轻声细语，紧张时会结巴，偶尔冒出超出年龄的洞察"
+
+director:
+  pacing: |
+    前 10 回合：角色互相试探，建立初步关系，暴风雪的压迫感逐渐加强
+    10-30 回合：线索逐步浮现，冲突升级，角色开始互相怀疑
+    30-50 回合：关键秘密暴露，阵营分化，走向高潮
+    50+ 回合：引导结局，真相逐步浮出水面
+  event_triggers:
+    - condition: "对话陷入重复或停滞超过 3 回合"
+      action: "注入突发事件：停电、有人发现新线索、外面传来声响、酒馆某处发现可疑物品"
+    - condition: "某角色的秘密相关线索被多次暗示"
+      action: "安排秘密被意外发现的情节，如有人无意翻到了某件物品"
+    - condition: "所有角色都避免谈论凶案"
+      action: "让某个角色直接提起凶案话题，打破沉默"
+    - condition: "气氛过于紧张，角色接近冲突爆发"
+      action: "插入一个缓和事件，如突然停电大家只能围坐在一起"
+  ending_conditions:
+    - "凶手身份被正确指认"
+    - "凶手成功转移嫌疑，另一个人被冤枉"
+    - "达到 80 回合仍无定论，暴风雪停了，警察到来"
+
+max_turns: 80
