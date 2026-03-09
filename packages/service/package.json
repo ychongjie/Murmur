@@ -18,10 +18,11 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
-    "@murmur/types": "workspace:*",
     "@murmur/config": "workspace:*",
     "@murmur/db": "workspace:*",
-    "zod": "^3.24.0",
-    "pino": "^9.0.0"
+    "@murmur/types": "workspace:*",
+    "openai": "^6.27.0",
+    "pino": "^9.0.0",
+    "zod": "^3.24.0"
   }
 }
