@@ -16,7 +16,7 @@ import { readFileSync } from 'node:fs';
 const MAX_LINES = 300;
 
 try {
-  const input = JSON.parse(readFileSync('/dev/stdin', 'utf8'));
+  const input = JSON.parse(readFileSync(0, 'utf8'));
   const filePath = input.tool_input?.file_path;
 
   if (!filePath) process.exit(0);
