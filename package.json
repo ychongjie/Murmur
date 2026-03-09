@@ -1,0 +1,27 @@
+{
+  "name": "murmur",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.29.3",
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "typecheck": "turbo typecheck",
+    "test": "turbo test",
+    "test:structural": "vitest run --project structural",
+    "validate:templates": "node scripts/validate-templates.js",
+    "db:migrate": "pnpm --filter @murmur/db migrate",
+    "db:seed": "tsx scripts/seed-templates.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "turbo": "^2.4.0",
+    "typescript": "^5.7.0",
+    "typescript-eslint": "^8.0.0",
+    "vitest": "^3.0.0",
+    "eslint": "^9.0.0",
+    "tsx": "^4.0.0",
+    "globals": "^16.0.0"
+  }
+}
