@@ -4,10 +4,10 @@
 export { callLlm, callLlmJson } from './agent/llm-client.js';
 export type { LlmCallOptions, LlmCallResult } from './agent/llm-client.js';
 
-export { runDirector } from './agent/director.js';
+export { runDirector, directorDecisionSchema } from './agent/director.js';
 export type { DirectorResult } from './agent/director.js';
 
-export { runCharacter } from './agent/character.js';
+export { runCharacter, parseCharacterOutput } from './agent/character.js';
 export type { CharacterResult } from './agent/character.js';
 
 export {

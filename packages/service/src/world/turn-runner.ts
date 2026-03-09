@@ -137,8 +137,11 @@ async function executeDecision(
       });
 
     case 'character_turn': {
+      if (!decision.nextSpeaker) {
+        return Result.err(new Error('character_turn decision missing nextSpeaker'));
+      }
       const charResult = await runCharacter(
-        decision.nextSpeaker!,
+        decision.nextSpeaker,
         template,
         history,
         currentTurn,
