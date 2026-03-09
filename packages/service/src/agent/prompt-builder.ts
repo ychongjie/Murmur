@@ -1,4 +1,195 @@
 // Prompt template builder for Director and Character agents
-// Full implementation in Phase 2
+// Centralizes all prompt construction logic
 
-export {};
+import type {
+  WorldTemplate,
+  CharacterTemplate,
+  WorldEvent,
+} from '@murmur/types';
+
+/** Build the system prompt for the Director agent */
+export function buildDirectorSystemPrompt(
+  template: WorldTemplate,
+  currentTurn: number,
+): string {
+  const characterSummaries = template.characters
+    .map(
+      (c) =>
+        `- ${c.name}（${c.role}）：性格 - ${c.personality}；秘密 - ${c.secret}`,
+    )
+    .join('\n');
+
+  const eventTriggers = template.director.eventTriggers
+    .map((t) => `- 当 ${t.condition} → ${t.action}`)
+    .join('\n');
+
+  const endingConditions = template.director.endingConditions
+    .map((c) => `- ${c}`)
+    .join('\n');
+
+  return `你是这个世界的导演，负责推进叙事。你拥有上帝视角，知晓一切。
+
+【世界设定】
+${template.setting.background}
+基调：${template.setting.tone}
+时代：${template.setting.era}
+
+【所有角色及其秘密】
+${characterSummaries}
+
+【节奏指南】
+${template.director.pacing}
+
+【事件触发规则】
+${eventTriggers}
+
+【结局条件】
+${endingConditions}
+
+【当前进度】第 ${currentTurn} / ${template.maxTurns} 回合
+
+【你的职责】
+1. 决定下一步谁说话（输出 next_speaker，值为角色 id）
+2. 必要时生成旁白描写（环境、氛围、角色动作）
+3. 在对话停滞时注入突发事件
+4. 追踪秘密的暴露进度，在合适时机安排揭露
+5. 判断是否达到结局条件
+
+【输出格式】
+严格输出 JSON，不要输出其他内容：
+{
+  "type": "narration" | "character_turn" | "event" | "ending",
+  "next_speaker": "角色id",
+  "narration": "环境描写或旁白",
+  "event_description": "突发事件描述",
+  "ending_summary": "结局总结"
+}
+
+规则：
+- type 为 "character_turn" 时必须包含 next_speaker
+- type 为 "narration" 时必须包含 narration
+- type 为 "event" 时必须包含 event_description
+- type 为 "ending" 时必须包含 ending_summary
+- 不要连续超过 3 次选择同一个角色说话
+- 每 5-8 回合穿插一次旁白或事件`;
+}
+
+/** Build the system prompt for a Character agent */
+export function buildCharacterSystemPrompt(
+  character: CharacterTemplate,
+  template: WorldTemplate,
+): string {
+  const relationships = Object.entries(character.relationships)
+    .map(([charId, rel]) => {
+      const target = template.characters.find((c) => c.id === charId);
+      const name = target ? target.name : charId;
+      return `- 对 ${name}：${rel}`;
+    })
+    .join('\n');
+
+  return `你是 ${character.name}，${character.role}。
+
+【性格】${character.personality}
+
+【秘密】你知道一个秘密：${character.secret}。你不会主动透露，除非被逼到绝境或有足够的理由。
+
+【关系】
+${relationships}
+
+【说话风格】${character.speechStyle}
+
+【规则】
+- 你只能说出你的角色知道的信息
+- 你的回复应为 1-3 句自然对话，不要长篇大论
+- 根据当前情境自然反应，可以撒谎、回避、反问
+- 不要打破第四面墙，不要提及自己是 AI
+- 用你的说话风格来回应
+- 可以包含简短的内心独白（用括号包裹，如：（心想：他怎么知道的？））
+
+【输出格式】
+直接输出你的对话内容。如果有内心独白，用单独一行括号包裹。
+不要输出角色名前缀，不要输出 JSON。`;
+}
+
+/** Format world event history as chat messages for the Director */
+export function formatHistoryForDirector(
+  events: WorldEvent[],
+  template: WorldTemplate,
+): Array<{ role: 'user' | 'assistant'; content: string }> {
+  const messages: Array<{ role: 'user' | 'assistant'; content: string }> = [];
+
+  for (const event of events) {
+    const charName = event.characterId
+      ? template.characters.find((c) => c.id === event.characterId)?.name ??
+        event.characterId
+      : null;
+
+    let content: string;
+    switch (event.eventType) {
+      case 'dialogue':
+        content = `[第${event.turn}回合] ${charName}说：${event.content}`;
+        break;
+      case 'narration':
+        content = `[第${event.turn}回合] 旁白：${event.content}`;
+        break;
+      case 'event':
+        content = `[第${event.turn}回合] 事件：${event.content}`;
+        break;
+      case 'ending':
+        content = `[第${event.turn}回合] 结局：${event.content}`;
+        break;
+      default:
+        content = `[第${event.turn}回合] ${event.content}`;
+    }
+    messages.push({ role: 'user', content });
+  }
+
+  if (messages.length > 0) {
+    messages.push({
+      role: 'user',
+      content: '请决定下一步发生什么。输出 JSON。',
+    });
+  }
+
+  return messages;
+}
+
+/** Format world event history as chat messages for a Character agent */
+export function formatHistoryForCharacter(
+  events: WorldEvent[],
+  characterId: string,
+  template: WorldTemplate,
+): Array<{ role: 'user' | 'assistant'; content: string }> {
+  const messages: Array<{ role: 'user' | 'assistant'; content: string }> = [];
+
+  for (const event of events) {
+    const charName = event.characterId
+      ? template.characters.find((c) => c.id === event.characterId)?.name ??
+        event.characterId
+      : null;
+
+    if (event.eventType === 'dialogue') {
+      if (event.characterId === characterId) {
+        // This character's own dialogue — mark as assistant
+        messages.push({ role: 'assistant', content: event.content });
+      } else {
+        messages.push({
+          role: 'user',
+          content: `${charName}说：${event.content}`,
+        });
+      }
+    } else if (
+      event.eventType === 'narration' ||
+      event.eventType === 'event'
+    ) {
+      messages.push({ role: 'user', content: event.content });
+    }
+  }
+
+  messages.push({
+    role: 'user',
+    content: '轮到你了，请回应当前情境。',
+  });
+
+  return messages;
+}
