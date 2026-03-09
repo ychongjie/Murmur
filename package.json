@@ -10,7 +10,7 @@
     "typecheck": "turbo typecheck",
     "test": "turbo test",
     "test:structural": "vitest run --project structural",
-    "validate:templates": "node scripts/validate-templates.js",
+    "validate:templates": "pnpm --filter @murmur/config validate:templates",
     "db:migrate": "pnpm --filter @murmur/db migrate",
     "db:seed": "tsx scripts/seed-templates.ts"
   },
