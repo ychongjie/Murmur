@@ -1,16 +1,17 @@
 // Server entry point
-// Full implementation in Phase 3
 
+import pino from 'pino';
 import { buildApp } from './app.js';
 
-const app = buildApp();
+const logger = pino({ name: 'server' });
 
 const start = async () => {
+  const { app } = await buildApp();
   const port = Number(process.env['PORT'] ?? 3001);
   await app.listen({ port, host: '0.0.0.0' });
 };
 
-start().catch((err) => {
-  app.log.error(err);
+start().catch((err: unknown) => {
+  logger.error({ event: 'startup_failed', err });
   process.exit(1);
 });
