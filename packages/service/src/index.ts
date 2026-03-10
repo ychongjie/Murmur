@@ -20,3 +20,12 @@ export {
 // World management
 export { runTurn } from './world/turn-runner.js';
 export type { TurnResult, TurnRunnerDeps } from './world/turn-runner.js';
+
+export { ObserverTracker } from './world/observer-tracker.js';
+export type { ObserverTrackerEvents } from './world/observer-tracker.js';
+
+export { WorldClock } from './world/world-clock.js';
+export type { WorldClockDeps } from './world/world-clock.js';
+
+export { InstanceManager } from './world/instance-manager.js';
+export type { InstanceManagerDeps, CreateInstanceResult } from './world/instance-manager.js';

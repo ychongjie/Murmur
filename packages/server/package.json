@@ -13,14 +13,17 @@
     "start": "node dist/index.js"
   },
   "dependencies": {
-    "@murmur/types": "workspace:*",
+    "@fastify/cors": "^10.0.0",
+    "@fastify/websocket": "^11.0.0",
     "@murmur/config": "workspace:*",
     "@murmur/db": "workspace:*",
     "@murmur/service": "workspace:*",
+    "@murmur/types": "workspace:*",
     "fastify": "^5.2.0",
-    "@fastify/websocket": "^11.0.0",
-    "@fastify/cors": "^10.0.0",
     "pino": "^9.0.0",
     "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@types/ws": "^8.18.1"
   }
 }
