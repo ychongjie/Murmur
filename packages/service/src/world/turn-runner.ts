@@ -25,6 +25,7 @@ export interface TurnResult {
     metadata: Record<string, unknown> | null;
   };
   ended: boolean;
+  eventId: number;
   promptTokens: number;
   completionTokens: number;
   latencyMs: number;
@@ -84,7 +85,7 @@ export async function runTurn(
   totalLatency += execResult.value.extraLatencyMs;
 
   // 4. Persist to database
-  await deps.eventRepo.create(turnEvent);
+  const savedEvent = await deps.eventRepo.create(turnEvent);
   await deps.instanceRepo.incrementTurn(instanceId);
   if (ended) {
     await deps.instanceRepo.updateStatus(instanceId, 'ended');
@@ -104,6 +105,7 @@ export async function runTurn(
 
   return Result.ok({
     event: turnEvent,
+    eventId: savedEvent.id,
     ended,
     promptTokens: totalPrompt,
     completionTokens: totalCompletion,

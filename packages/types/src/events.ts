@@ -25,10 +25,11 @@ export type WsMessageType =
   | 'observer_count'
   | 'error';
 
-export interface WsMessage {
-  type: WsMessageType;
-  payload: WorldEvent | WorldStatusPayload | ObserverCountPayload | ErrorPayload;
-}
+export type WsMessage =
+  | { type: 'world_event'; payload: WorldEvent }
+  | { type: 'world_status'; payload: WorldStatusPayload }
+  | { type: 'observer_count'; payload: ObserverCountPayload }
+  | { type: 'error'; payload: ErrorPayload };
 
 export interface WorldStatusPayload {
   instanceId: string;

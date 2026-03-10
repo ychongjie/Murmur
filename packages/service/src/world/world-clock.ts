@@ -20,6 +20,7 @@ interface ClockEntry {
   templateId: string;
   timer: ReturnType<typeof setTimeout> | null;
   running: boolean;
+  speed: SpeedSetting;
 }
 
 export class WorldClock {
@@ -41,6 +42,7 @@ export class WorldClock {
       templateId,
       timer: null,
       running: true,
+      speed,
     };
     this.clocks.set(instanceId, entry);
 
@@ -52,7 +54,7 @@ export class WorldClock {
       payload: { instanceId, status: 'running' },
     });
 
-    this.scheduleNext(instanceId, speed);
+    this.scheduleNext(instanceId);
   }
 
   stop(instanceId: string): void {
@@ -72,11 +74,12 @@ export class WorldClock {
     const entry = this.clocks.get(instanceId);
     if (!entry || !entry.running) return;
 
+    entry.speed = speed;
     if (entry.timer) {
       clearTimeout(entry.timer);
       entry.timer = null;
     }
-    this.scheduleNext(instanceId, speed);
+    this.scheduleNext(instanceId);
     logger.info({ event: 'clock_speed_changed', instanceId, speed });
   }
 
@@ -90,17 +93,17 @@ export class WorldClock {
     }
   }
 
-  private scheduleNext(instanceId: string, speed: SpeedSetting): void {
+  private scheduleNext(instanceId: string): void {
     const entry = this.clocks.get(instanceId);
     if (!entry || !entry.running) return;
 
-    const interval = SPEED_INTERVALS[speed];
+    const interval = SPEED_INTERVALS[entry.speed];
     entry.timer = setTimeout(() => {
-      void this.tick(instanceId, speed);
+      void this.tick(instanceId);
     }, interval);
   }
 
-  private async tick(instanceId: string, speed: SpeedSetting): Promise<void> {
+  private async tick(instanceId: string): Promise<void> {
     const entry = this.clocks.get(instanceId);
     if (!entry || !entry.running) return;
 
@@ -126,15 +129,15 @@ export class WorldClock {
 
     if (!result.ok) {
       logger.error({ event: 'turn_failed', instanceId, error: result.error.message });
-      this.scheduleNext(instanceId, speed);
+      this.scheduleNext(instanceId);
       return;
     }
 
-    const { event, ended } = result.value;
+    const { event, eventId, ended } = result.value;
     this.deps.broadcast(instanceId, {
       type: 'world_event',
       payload: {
-        id: 0,
+        id: eventId,
         instanceId: event.instanceId,
         turn: event.turn,
         eventType: event.eventType,
@@ -154,6 +157,6 @@ export class WorldClock {
       return;
     }
 
-    this.scheduleNext(instanceId, speed);
+    this.scheduleNext(instanceId);
   }
 }
