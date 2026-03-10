@@ -30,14 +30,24 @@ export class InstanceManager {
   async createInstance(templateId: string): Promise<ResultType<CreateInstanceResult, Error>> {
     const template = this.deps.resolveTemplate(templateId);
     if (!template) {
-      const dbTemplate = await this.deps.templateRepo.findById(templateId);
+      let dbTemplate;
+      try {
+        dbTemplate = await this.deps.templateRepo.findById(templateId);
+      } catch (err) {
+        return Result.err(err instanceof Error ? err : new Error(String(err)));
+      }
       if (!dbTemplate) {
         return Result.err(new Error(`Template not found: ${templateId}`));
       }
     }
 
-    const row = await this.deps.instanceRepo.create({ templateId });
-    await this.deps.templateRepo.incrementPlayCount(templateId);
+    let row;
+    try {
+      row = await this.deps.instanceRepo.create({ templateId });
+      await this.deps.templateRepo.incrementPlayCount(templateId);
+    } catch (err) {
+      return Result.err(err instanceof Error ? err : new Error(String(err)));
+    }
 
     logger.info({ event: 'instance_created', instanceId: row.id, templateId });
 
@@ -58,7 +68,12 @@ export class InstanceManager {
     createdAt: Date;
     endedAt: Date | null;
   }, Error>> {
-    const row = await this.deps.instanceRepo.findById(instanceId);
+    let row;
+    try {
+      row = await this.deps.instanceRepo.findById(instanceId);
+    } catch (err) {
+      return Result.err(err instanceof Error ? err : new Error(String(err)));
+    }
     if (!row) {
       return Result.err(new Error(`Instance not found: ${instanceId}`));
     }
