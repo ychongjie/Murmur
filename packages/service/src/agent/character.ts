@@ -83,7 +83,7 @@ export async function runCharacter(
 }
 
 /** Parse character output, extracting inner thoughts in parentheses */
-function parseCharacterOutput(
+export function parseCharacterOutput(
   characterId: string,
   raw: string,
 ): CharacterMessage {

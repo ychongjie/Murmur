@@ -19,7 +19,7 @@ import {
 const logger = pino({ name: 'director-agent' });
 
 /** Zod schema for parsing the director's JSON output */
-const directorDecisionSchema = z
+export const directorDecisionSchema = z
   .object({
     type: z.enum(['narration', 'character_turn', 'event', 'ending']),
     next_speaker: z.string().optional(),

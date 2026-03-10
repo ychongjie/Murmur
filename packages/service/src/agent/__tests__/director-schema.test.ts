@@ -1,25 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { z } from 'zod';
-import type { DirectorDecision } from '@murmur/types';
-
-// Replicate the director decision schema for isolated testing
-const directorDecisionSchema = z
-  .object({
-    type: z.enum(['narration', 'character_turn', 'event', 'ending']),
-    next_speaker: z.string().optional(),
-    narration: z.string().optional(),
-    event_description: z.string().optional(),
-    ending_summary: z.string().optional(),
-  })
-  .transform(
-    (raw): DirectorDecision => ({
-      type: raw.type,
-      nextSpeaker: raw.next_speaker,
-      narration: raw.narration,
-      eventDescription: raw.event_description,
-      endingSummary: raw.ending_summary,
-    }),
-  );
+import { directorDecisionSchema } from '../director.js';
 
 describe('directorDecisionSchema', () => {
   it('parses character_turn decision', () => {

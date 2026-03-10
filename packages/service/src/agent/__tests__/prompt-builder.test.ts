@@ -133,11 +133,15 @@ describe('formatHistoryForDirector', () => {
     },
   ];
 
-  it('formats events as messages', () => {
+  it('formats events as messages with correct roles', () => {
     const msgs = formatHistoryForDirector(events, template);
     expect(msgs.length).toBe(3); // 2 events + 1 prompt
+    // Narration is director output → assistant role
+    expect(msgs[0]!.role).toBe('assistant');
     expect(msgs[0]!.content).toContain('旁白');
     expect(msgs[0]!.content).toContain('夜幕降临');
+    // Dialogue is character output → user role (report back to director)
+    expect(msgs[1]!.role).toBe('user');
     expect(msgs[1]!.content).toContain('爱丽丝');
   });
 

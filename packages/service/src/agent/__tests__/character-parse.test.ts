@@ -1,33 +1,7 @@
 import { describe, it, expect } from 'vitest';
+import { parseCharacterOutput } from '../character.js';
 
-// Test the parseCharacterOutput logic by importing through runCharacter
-// Since parseCharacterOutput is private, we test indirectly via the module.
-// We can test the parsing pattern directly here.
-
-describe('character output parsing', () => {
-  // Replicate the parsing logic for unit testing
-  function parseCharacterOutput(
-    characterId: string,
-    raw: string,
-  ) {
-    const trimmed = raw.trim();
-    const thoughtPattern = /[（(](.+?)[）)]/g;
-    const thoughts: string[] = [];
-    let match: RegExpExecArray | null = null;
-    while ((match = thoughtPattern.exec(trimmed)) !== null) {
-      thoughts.push(match[1]!);
-    }
-    const content = trimmed
-      .replace(/[（(].+?[）)]/g, '')
-      .replace(/\n{2,}/g, '\n')
-      .trim();
-    return {
-      characterId,
-      content: content || trimmed,
-      innerThought: thoughts.length > 0 ? thoughts.join('；') : undefined,
-    };
-  }
-
+describe('parseCharacterOutput', () => {
   it('extracts plain dialogue', () => {
     const result = parseCharacterOutput('alice', '你们在说什么？');
     expect(result.content).toBe('你们在说什么？');
