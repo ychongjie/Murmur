@@ -9,8 +9,7 @@ services:
     plan: free
     region: oregon
     buildCommand: pnpm install --frozen-lockfile && pnpm build
-    preDeployCommand: pnpm db:migrate
-    startCommand: node packages/server/dist/index.js
+    startCommand: pnpm db:migrate && node packages/server/dist/index.js
     healthCheckPath: /health
     envVars:
       - key: NODE_ENV

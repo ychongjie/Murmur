@@ -39,8 +39,7 @@
 
 **murmur-server:**
 - Build: `pnpm install --frozen-lockfile && pnpm build`
-- Pre-deploy: `pnpm db:migrate`（自动执行数据库迁移）
-- Start: `node packages/server/dist/index.js`
+- Start: `pnpm db:migrate && node packages/server/dist/index.js`（启动前自动执行数据库迁移）
 - Health check: `GET /health`
 
 **murmur-web:**
@@ -115,7 +114,7 @@ Deploy Hook URL 存储为 GitHub Repository Secrets。
 
 ## 5. 数据库迁移策略
 
-- 迁移在 server 服务的 pre-deploy 命令中执行
+- 迁移在 server 服务的 startCommand 中、启动应用前执行（Render 免费版不支持 preDeployCommand）
 - Drizzle ORM 的 `drizzle-kit push` 或自定义迁移脚本
 - 迁移文件位于 `packages/db/src/migrations/`
 - 回滚：手动编写逆向迁移 SQL
@@ -155,6 +154,7 @@ Render 自动探测健康检查端点，不健康时自动重启。
 | PostgreSQL 90 天后过期 | 需要手动续期或迁移 | 定期备份，到期前处理 |
 | 750 小时/月免费时长 | 两个服务共用 | 足够 MVP 使用 |
 | 无自定义域名（免费版） | 使用 .onrender.com 域名 | v2 升级付费版后配置自定义域名 |
+| 不支持 preDeployCommand | 无法在部署前单独执行迁移 | 将 `db:migrate` 移入 startCommand，启动前执行 |
 
 ## 9. 后续优化（v2+）
 
