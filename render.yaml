@@ -1,0 +1,55 @@
+# Render Blueprint — Murmur Infrastructure as Code
+# https://docs.render.com/blueprint-spec
+
+services:
+  # Fastify API + WebSocket server
+  - type: web
+    name: murmur-server
+    runtime: node
+    plan: free
+    region: oregon
+    buildCommand: pnpm install --frozen-lockfile && pnpm build
+    preDeployCommand: pnpm db:migrate
+    startCommand: node packages/server/dist/index.js
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: LOG_LEVEL
+        value: info
+      - key: DATABASE_URL
+        fromDatabase:
+          name: murmur-db
+          property: connectionString
+      - key: DEEPSEEK_API_KEY
+        sync: false # must be set manually in dashboard
+      - key: DEEPSEEK_BASE_URL
+        value: https://api.deepseek.com
+
+  # Next.js frontend
+  - type: web
+    name: murmur-web
+    runtime: node
+    plan: free
+    region: oregon
+    buildCommand: pnpm install --frozen-lockfile && pnpm build
+    startCommand: npx --prefix packages/web next start --port $PORT
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_PUBLIC_API_URL
+        fromService:
+          type: web
+          name: murmur-server
+          property: hostport
+          # Override in dashboard with full https:// URL after first deploy
+      - key: NEXT_PUBLIC_WS_URL
+        sync: false # set manually: wss://<murmur-server>.onrender.com
+
+databases:
+  - name: murmur-db
+    plan: free
+    region: oregon
+    databaseName: murmur
+    postgresMajorVersion: "16"

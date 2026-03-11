@@ -5,7 +5,7 @@ on:
     branches: [main]
 
 jobs:
-  deploy:
+  ci:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -20,10 +20,31 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Structural tests
+        run: pnpm test:structural
+
+      - name: Unit tests
+        run: pnpm test
+
       - name: Build
         run: pnpm build
 
-      # TODO: Add Render deployment step
-      # See: https://render.com/docs/deploy-a-node-app
-      - name: Deploy to Render
-        run: echo "Deployment step — configure Render webhook or CLI"
+  deploy:
+    needs: ci
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Render deploy (server)
+        run: |
+          curl -sf "${{ secrets.RENDER_DEPLOY_HOOK_SERVER }}" \
+            || echo "::warning::Server deploy hook not configured"
+
+      - name: Trigger Render deploy (web)
+        run: |
+          curl -sf "${{ secrets.RENDER_DEPLOY_HOOK_WEB }}" \
+            || echo "::warning::Web deploy hook not configured"
