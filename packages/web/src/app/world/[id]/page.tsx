@@ -1,3 +1,6 @@
+import { fetchInstance, fetchTemplate } from '../../../lib/api';
+import { WorldViewer } from '../../../components/WorldViewer';
+
 export default async function WorldPage({
   params,
 }: {
@@ -5,14 +8,39 @@ export default async function WorldPage({
 }) {
   const { id } = await params;
 
-  return (
-    <main className="min-h-screen p-8">
-      <h1 className="text-xl font-bold text-glow mb-4">
-        世界 #{id}
-      </h1>
+  let instance: Awaited<ReturnType<typeof fetchInstance>> | null = null;
+  let templateConfig: Awaited<ReturnType<typeof fetchTemplate>> | null = null;
+  let error: string | null = null;
 
-      {/* Chat stream + character panel — Phase 4 */}
-      <p className="opacity-40">对话加载中...</p>
-    </main>
+  try {
+    instance = await fetchInstance(id);
+    templateConfig = await fetchTemplate(instance.templateId);
+  } catch {
+    error = 'Failed to load world. Is the server running?';
+  }
+
+  if (error || !instance || !templateConfig) {
+    return (
+      <main className="mx-auto min-h-screen max-w-5xl p-6 md:p-8">
+        <div className="rounded border border-[var(--char-color-1)] px-4 py-3 text-sm text-[var(--char-color-1)]">
+          {error ?? 'World not found'}
+        </div>
+      </main>
+    );
+  }
+
+  const characters = (templateConfig.config.characters ?? []).map((c) => ({
+    id: c.id,
+    name: c.name,
+    role: c.role,
+    personality: c.personality,
+  }));
+
+  return (
+    <WorldViewer
+      instanceId={instance.id}
+      worldName={templateConfig.name}
+      characters={characters}
+    />
   );
 }
