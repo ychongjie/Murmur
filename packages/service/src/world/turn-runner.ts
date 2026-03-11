@@ -25,6 +25,7 @@ export interface TurnResult {
     metadata: Record<string, unknown> | null;
   };
   ended: boolean;
+  eventId: number;
   promptTokens: number;
   completionTokens: number;
   latencyMs: number;
@@ -49,7 +50,12 @@ export async function runTurn(
   });
 
   // 1. Load recent history
-  const recentEvents = await deps.eventRepo.findRecent(instanceId, 50);
+  let recentEvents;
+  try {
+    recentEvents = await deps.eventRepo.findRecent(instanceId, 50);
+  } catch (err) {
+    return Result.err(err instanceof Error ? err : new Error(String(err)));
+  }
   const history: WorldEvent[] = recentEvents
     .reverse()
     .map(mapDbEventToWorldEvent);
@@ -84,10 +90,15 @@ export async function runTurn(
   totalLatency += execResult.value.extraLatencyMs;
 
   // 4. Persist to database
-  await deps.eventRepo.create(turnEvent);
-  await deps.instanceRepo.incrementTurn(instanceId);
-  if (ended) {
-    await deps.instanceRepo.updateStatus(instanceId, 'ended');
+  let savedEvent;
+  try {
+    savedEvent = await deps.eventRepo.create(turnEvent);
+    await deps.instanceRepo.incrementTurn(instanceId);
+    if (ended) {
+      await deps.instanceRepo.updateStatus(instanceId, 'ended');
+    }
+  } catch (err) {
+    return Result.err(err instanceof Error ? err : new Error(String(err)));
   }
 
   logger.info({
@@ -104,6 +115,7 @@ export async function runTurn(
 
   return Result.ok({
     event: turnEvent,
+    eventId: savedEvent.id,
     ended,
     promptTokens: totalPrompt,
     completionTokens: totalCompletion,

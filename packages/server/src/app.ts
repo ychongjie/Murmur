@@ -3,6 +3,7 @@
 import Fastify from 'fastify';
 import fastifyWebsocket from '@fastify/websocket';
 import fastifyCors from '@fastify/cors';
+import pino from 'pino';
 import type { WorldTemplate } from '@murmur/types';
 import { loadEnv } from '@murmur/config';
 import {
@@ -27,6 +28,8 @@ export interface AppContext {
   heartbeatMonitor: HeartbeatMonitor;
   observerTracker: ObserverTracker;
 }
+
+const logger = pino({ name: 'app' });
 
 export async function buildApp() {
   const env = loadEnv();
@@ -76,18 +79,22 @@ export async function buildApp() {
   // Observer tracker with event wiring
   const observerTracker = new ObserverTracker({
     onFirstObserver: (instanceId) => {
-      void (async () => {
+      (async () => {
         const instance = await instanceRepo.findById(instanceId);
         if (!instance || instance.status === 'ended') return;
         const template = await loadTemplateForInstance(instance.templateId);
         if (!template) return;
         const speed = observerTracker.getFastestSpeed(instanceId);
         await worldClock.start(instanceId, instance.templateId, speed);
-      })();
+      })().catch((err: unknown) => {
+        logger.error({ event: 'world_start_failed', instanceId, error: err instanceof Error ? err.message : String(err) });
+      });
     },
     onLastObserverLeft: (instanceId) => {
       worldClock.stop(instanceId);
-      void instanceRepo.updateStatus(instanceId, 'frozen');
+      instanceRepo.updateStatus(instanceId, 'frozen').catch((err: unknown) => {
+        logger.error({ event: 'freeze_status_update_failed', instanceId, error: err instanceof Error ? err.message : String(err) });
+      });
       broadcastToInstance(instanceId, {
         type: 'world_status',
         payload: { instanceId, status: 'frozen' },
@@ -97,7 +104,9 @@ export async function buildApp() {
       worldClock.updateSpeed(instanceId, speed);
     },
     onCountChange: (instanceId, count) => {
-      void instanceRepo.updateObserverCount(instanceId, count);
+      instanceRepo.updateObserverCount(instanceId, count).catch((err: unknown) => {
+        logger.error({ event: 'observer_count_update_failed', instanceId, error: err instanceof Error ? err.message : String(err) });
+      });
       broadcastToInstance(instanceId, {
         type: 'observer_count',
         payload: { instanceId, count },

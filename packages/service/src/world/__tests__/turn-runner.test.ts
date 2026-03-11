@@ -92,6 +92,7 @@ describe('runTurn', () => {
     if (!result.ok) return;
     expect(result.value.event.eventType).toBe('narration');
     expect(result.value.event.content).toBe('夜幕降临。');
+    expect(result.value.eventId).toBe(1);
     expect(result.value.ended).toBe(false);
     expect(result.value.promptTokens).toBe(100);
     expect(deps.eventRepo.create).toHaveBeenCalledOnce();
