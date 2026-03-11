@@ -12,16 +12,14 @@ interface CharacterPanelProps {
   speakingCharacterId: string | null;
 }
 
-const CHAR_COLORS = [
-  'var(--char-color-1)',
-  'var(--char-color-2)',
-  'var(--char-color-3)',
-  'var(--char-color-4)',
-  'var(--char-color-5)',
-];
+const CHAR_COLOR_COUNT = 5;
 
-export function getCharacterColor(index: number): string {
-  return CHAR_COLORS[index % CHAR_COLORS.length] ?? CHAR_COLORS[0];
+export function getCharacterColorClass(index: number): string {
+  return `char-color-${index % CHAR_COLOR_COUNT}`;
+}
+
+export function getCharacterBgClass(index: number): string {
+  return `char-bg-${index % CHAR_COLOR_COUNT}`;
 }
 
 export function CharacterPanel({
@@ -34,7 +32,8 @@ export function CharacterPanel({
         CHARACTERS
       </h2>
       {characters.map((char, i) => {
-        const color = getCharacterColor(i);
+        const colorClass = getCharacterColorClass(i);
+        const bgClass = getCharacterBgClass(i);
         const isSpeaking = char.id === speakingCharacterId;
         return (
           <div
@@ -47,10 +46,9 @@ export function CharacterPanel({
           >
             <div className="flex items-center gap-2">
               <span
-                className="inline-block h-2 w-2 rounded-full"
-                style={{ backgroundColor: color }}
+                className={`inline-block h-2 w-2 rounded-full ${bgClass}`}
               />
-              <span className="text-sm font-bold" style={{ color }}>
+              <span className={`text-sm font-bold ${colorClass}`}>
                 {char.name}
               </span>
               {isSpeaking && (

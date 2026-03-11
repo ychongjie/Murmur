@@ -65,3 +65,21 @@ body {
 .text-glow {
   text-shadow: 0 0 8px var(--glow-color);
 }
+
+/* Character color classes */
+.char-color-0 { color: var(--char-color-1); }
+.char-color-1 { color: var(--char-color-2); }
+.char-color-2 { color: var(--char-color-3); }
+.char-color-3 { color: var(--char-color-4); }
+.char-color-4 { color: var(--char-color-5); }
+
+.char-bg-0 { background-color: var(--char-color-1); }
+.char-bg-1 { background-color: var(--char-color-2); }
+.char-bg-2 { background-color: var(--char-color-3); }
+.char-bg-3 { background-color: var(--char-color-4); }
+.char-bg-4 { background-color: var(--char-color-5); }
+
+/* Narration serif font */
+.font-narration {
+  font-family: var(--font-serif);
+}
