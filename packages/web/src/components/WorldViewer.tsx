@@ -1,9 +1,10 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import Link from 'next/link';
-import type { SpeedSetting } from '@murmur/types';
+import type { SpeedSetting, WorldEvent } from '@murmur/types';
 import { useWorldSocket } from '../hooks/useWorldSocket';
+import { fetchEvents } from '../lib/api';
 import { Terminal } from './Terminal';
 import { ChatStream } from './ChatStream';
 import { CharacterPanel } from './CharacterPanel';
@@ -22,20 +23,56 @@ interface WorldViewerProps {
   characters: CharacterInfo[];
 }
 
+const HISTORY_PAGE_SIZE = 20;
+
 export function WorldViewer({
   instanceId,
   worldName,
   characters,
 }: WorldViewerProps) {
   const [speed, setSpeed] = useState<SpeedSetting>('normal');
+  const [historyEvents, setHistoryEvents] = useState<WorldEvent[]>([]);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
   const {
     connected,
-    events,
+    events: liveEvents,
     observerCount,
     worldStatus,
     error,
     setSpeed: wsSetSpeed,
   } = useWorldSocket(instanceId);
+
+  const allEvents = useMemo(() => {
+    const seen = new Set(liveEvents.map((e) => e.id));
+    const deduped = historyEvents.filter((e) => !seen.has(e.id));
+    return [...deduped, ...liveEvents];
+  }, [historyEvents, liveEvents]);
+
+  const loadMore = useCallback(async () => {
+    if (loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    try {
+      const offset = historyEvents.length;
+      const older = await fetchEvents(instanceId, HISTORY_PAGE_SIZE, offset);
+      if (older.length < HISTORY_PAGE_SIZE) setHasMore(false);
+      const mapped: WorldEvent[] = older.map((e) => ({
+        id: e.id,
+        instanceId: e.instanceId,
+        turn: e.turn,
+        eventType: e.eventType,
+        characterId: e.characterId,
+        content: e.content,
+        metadata: e.metadata,
+        createdAt: new Date(e.createdAt),
+      }));
+      setHistoryEvents((prev) => [...mapped.reverse(), ...prev]);
+    } catch {
+      setHasMore(false);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [instanceId, historyEvents.length, loadingMore, hasMore]);
 
   const characterNames = useMemo(() => {
     const map: Record<string, string> = {};
@@ -53,7 +90,7 @@ export function WorldViewer({
     return map;
   }, [characters]);
 
-  const lastEvent = events[events.length - 1];
+  const lastEvent = allEvents[allEvents.length - 1];
   const speakingCharacterId = lastEvent?.characterId ?? null;
   const currentTurn = lastEvent?.turn ?? 0;
 
@@ -61,6 +98,15 @@ export function WorldViewer({
     setSpeed(newSpeed);
     wsSetSpeed(newSpeed);
   }
+
+  const frozenMessage =
+    connected && worldStatus === 'frozen' && allEvents.length === 0
+      ? 'World is frozen. Waiting for the story to begin...'
+      : connected && worldStatus === 'frozen'
+        ? 'World is frozen. It will resume when an observer joins.'
+        : connected
+          ? 'Waiting for the world to begin...'
+          : 'Connecting...';
 
   return (
     <main className="mx-auto min-h-screen max-w-6xl p-4 md:p-6">
@@ -98,17 +144,18 @@ export function WorldViewer({
         <div className="flex-1">
           <Terminal title={`${worldName} — Live`}>
             <div className="h-[calc(100vh-220px)] overflow-y-auto pr-2">
-              {events.length === 0 ? (
+              {allEvents.length === 0 ? (
                 <p className="text-sm text-[var(--terminal-text-dim)]">
-                  {connected
-                    ? 'Waiting for the world to begin...'
-                    : 'Connecting...'}
+                  {frozenMessage}
                 </p>
               ) : (
                 <ChatStream
-                  events={events}
+                  events={allEvents}
                   characterNames={characterNames}
                   characterIndexes={characterIndexes}
+                  onLoadMore={loadMore}
+                  hasMore={hasMore}
+                  loadingMore={loadingMore}
                 />
               )}
             </div>
@@ -117,7 +164,7 @@ export function WorldViewer({
           <div className="mt-3 flex items-center justify-between">
             <SpeedControl current={speed} onChange={handleSpeedChange} />
             <div className="flex items-center gap-2 text-xs text-[var(--terminal-text-dim)]">
-              <span>{events.length} messages</span>
+              <span>{allEvents.length} messages</span>
             </div>
           </div>
         </div>
