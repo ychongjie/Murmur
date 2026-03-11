@@ -34,6 +34,7 @@ Types → Config → DB → Service → Server → Web
 - @docs/agent-system.md         — 导演/角色 Agent prompt 工程
 - @docs/world-template-schema.md — 世界模板 YAML schema
 - @docs/style-guide.md          — 前端视觉规范
+- @docs/deployment.md           — 部署方案（Render + GitHub Actions）
 
 ## 常用命令
 - pnpm install                 — 安装依赖

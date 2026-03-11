@@ -142,6 +142,13 @@ export async function buildApp() {
   // Error handler
   app.setErrorHandler(errorHandler);
 
+  // Health check (used by Render for liveness probes)
+  app.get('/health', async () => ({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+  }));
+
   // Routes
   registerTemplateRoutes(app, templateRepo);
   registerInstanceRoutes(app, instanceManager, eventRepo);
